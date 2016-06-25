@@ -8,27 +8,18 @@ J = numel(psi);
 
 for m = 1:M+1
     hindex = 1;
-    if m > size(U,2)
-        continue;
-    end
     
-    res = 1;
     for s = 1:numel(U{m})
         sigf = fft (U{m}{s});
         res = (log2N - (log2 (length(sigf)))) + 1;
-        
+
         if m<=M
             vindex = 1;
             paths = {};
             for j = s : numel(psi{res})
                 ds = 2^(j-s);
                 c = abs(ifft(sigf .* psi{res}{j}));
-                if res > 2
-                    paths{vindex} = c(1:ds:end);
-                else
-                    paths{vindex} = c;
-                end
-                
+                paths{vindex} = c;
                 vindex = vindex + 1;
             end
             
