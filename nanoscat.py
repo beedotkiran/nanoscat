@@ -1,7 +1,8 @@
 import numpy as np
 import scipy.io.wavfile
 import matplotlib.pyplot as plt
-
+#import numpy.fft as fft_module
+import scipy.fftpack as fft_module
 
 def interpft(x, n):
     """
@@ -9,15 +10,15 @@ def interpft(x, n):
     """
     [nr, nc] = x.shape
     if n > nr:
-        y = np.fft.fft(x) / nr
+        y = fft_module.fft(x) / nr
         k = np.floor(nr / 2)
-        z = n * np.fft.ifft(np.hstack(y[0:k, :], np.zeros(shape=(n - nr, nc)), y[k + 1:nr]))
+        z = n * fft_module.ifft(np.hstack(y[0:k, :], np.zeros(shape=(n - nr, nc)), y[k + 1:nr]))
     elif n < nr:
         print('interpft: Poor results possible: n should be bigger than x')
         ## XXX FIXME XXX the following doesn't work so well
-        y = np.fft.fft(x) / nr
+        y = fft_module.fft(x) / nr
         k = np.ceil(n / 2)
-        z = n * np.fft.ifft(np.hstack(y[0:k, :], y[nr - k + 2:nr]))
+        z = n * fft_module.ifft(np.hstack(y[0:k, :], y[nr - k + 2:nr]))
     else:
         z = x
     return z
@@ -139,20 +140,20 @@ def nanoscat_compute(sig, psi, phi, M):
         
         for s in range(1, len(U[m]) + 1):
             
-            sigf = np.fft.fft(U[m][s])
+            sigf = fft_module.fft(U[m][s])
             res = int((log2N - (np.log2(len(sigf)))) + 1)
             if m <= M:
                 
                 for j in range(s, len(psi[res]) + 1):
                     # subsample rate is different between the resolution and the bandpass critical frequency support j
                     ds = 2 ** (j - s)
-                    c = np.abs(np.fft.ifft(np.multiply(sigf, psi[res][j])))
+                    c = np.abs(fft_module.ifft(np.multiply(sigf, psi[res][j])))
                     U[m + 1][lambda_idx] = c
                     lambda_idx = lambda_idx + 1
                     
             #why is subsampling fixed to this value here ?
             ds = (J - res) ** 2
-            c = np.abs(np.fft.ifft(np.multiply(sigf, phi[res])))
+            c = np.abs(fft_module.ifft(np.multiply(sigf, phi[res])))
             if ds > 1:
                 c = c[0::ds]
             S[m][s] = c
@@ -184,19 +185,21 @@ def nanoscat_format(S, M):
 
 ## nanoscat demo starts here
 ## Q = 1 (dyadic wavelets)
-M = 1  # orders
-J = 16  # maximal scale
+M = 2  # orders
+J = 11  # maximal scale
+plot_flag = 1
 
 ## load and zero pad audio
 (sig, N, lensig, sr) = nanoscat_load('samples\drum1_90.wav')
 sig = sig / np.linalg.norm(sig)  # normalization
 
-plt.figure()
-plt.plot(sig)
-plt.title('Input signal')
-plt.xlabel('Time(s)')
-plt.ylabel('Normalized Amplitude')
-plt.show()
+if(plot_flag):
+    plt.figure()
+    plt.plot(sig)
+    plt.title('Input signal')
+    plt.xlabel('Time(s)')
+    plt.ylabel('Normalized Amplitude')
+    plt.show()
 
 #validate that J is bounded within Log2(N) 
 assert (J < np.log2(N))
@@ -204,15 +207,17 @@ assert (J < np.log2(N))
 #compute filters
 (psi, phi, lp) = nanoscat_make_filters(N, J, 'gaussian')
 
-nanoscat_display_filters(psi, phi, lp)
+if(plot_flag):
+    nanoscat_display_filters(psi, phi, lp)
 
 #compute scattering
-[S, U] = nanoscat_compute(sig, psi, phi, M)
+(S, U) = nanoscat_compute(sig, psi, phi, M)
 
 #format and plot S coefficients
 scat = nanoscat_format(S, M)  # creates a matrix with all coefficients
 
-plt.figure()
-plt.imshow(scat, cmap = 'jet')
-plt.title('Scattering coefficients (all orders)')
-plt.show()
+if(plot_flag):
+    plt.figure()
+    plt.imshow(scat, cmap = 'jet')
+    plt.title('Scattering coefficients (all orders)')
+    plt.show()
