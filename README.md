@@ -1,4 +1,4 @@
-# [nanoscat]
+##[nanoscat]
 
 Pedagogical implementation of scattering transform for 1D signals
 (dyadic wavelets only); for more complete implementations please see:
