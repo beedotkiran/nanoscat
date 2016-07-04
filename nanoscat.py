@@ -141,6 +141,8 @@ def nanoscat_compute(sig, psi, phi, M):
         for s in range(1, len(U[m]) + 1):
             
             sigf = fft_module.fft(U[m][s])
+            #res always calculates to 1 here
+            #scatnet/scatnetligt does : ds = round(log2(2*pi/phi_bw)) - j0 - options.oversampling;
             res = int((log2N - (np.log2(len(sigf)))) + 1)
             if m <= M:
                 
@@ -152,7 +154,7 @@ def nanoscat_compute(sig, psi, phi, M):
                     lambda_idx = lambda_idx + 1
                     
             #why is subsampling fixed to this value here ?
-            ds = (J - res) ** 2
+            ds = (J - res)**2
             c = np.abs(fft_module.ifft(np.multiply(sigf, phi[res])))
             if ds > 1:
                 c = c[0::ds]

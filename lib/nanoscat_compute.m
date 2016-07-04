@@ -12,6 +12,7 @@ for m = 1:M+1
     for s = 1:numel(U{m})
         sigf = fft (U{m}{s});
         %res here always calculates to 1
+        %scatnet/scatnetligt does : ds = round(log2(2*pi/phi_bw)) - j0 - options.oversampling;
         res = (log2N - (log2 (length(sigf)))) + 1;
         %Convolution with \psi_\lambda wavelet filters
         if m<=M
