@@ -55,13 +55,14 @@ def nanoscat_make_filters(N, J, shape='gaussian'):
         psi[res + 1] = {}
 
         for j in range(0, J):
-            sz = np.floor(0.8 * N0 / 2 ** j)
+            print('Why add this 0.8 in the sz size variable ? Further on this is not dyadic ratio')
+            sz = int(np.floor(0.8 * N0 / 2 ** j))
             if sz <= N / 2 ** J:
                 break
 
             if shape == 'hanning':
-                v = np.zeros(N0, 1)
-                v[0:sz - 1] = (1 - cos(2 * pi * np.arange(0, sz - 2) / sz))
+                v = np.zeros(shape=(N0))
+                v = (1 - np.cos(2 * np.pi * np.arange(0, sz - 2) / sz))[0:N0]
             else:  # 'gaussian'
                 xi = 0.4 * 2 ** (-j)
                 v = 2 * np.exp(- np.square(np.arange(0, N0, dtype=float) / N - xi) * 10 * np.log(2) / xi ** 2).transpose()
@@ -71,11 +72,12 @@ def nanoscat_make_filters(N, J, shape='gaussian'):
 
             if (res + j == J - 1):
                 if shape == 'hanning':
-                    f = np.zeros(shape=(N0, 1))
+                    print('Fix me the length issue here')
+                    f = np.zeros(shape=(N0))
                     half = np.floor(sz / 2)
                     f[-1 - half + 1:-1] = v[0:half] * .5
                     f[0:half] = v[half + 1:half + half] * .5
-                    phi[res] = floor
+                    phi[res] = f
                 else:  # 'gaussian' This is for Q = 1
                     bw = 0.4 * 2 ** (-1 + J)
                     # temp2 = -np.square(np.arange(0, N0,dtype=float)) * 10 * np.log(2) / bw**2
@@ -207,7 +209,7 @@ if(plot_flag):
 assert (J < np.log2(N))
 
 #compute filters
-(psi, phi, lp) = nanoscat_make_filters(N, J, 'gaussian')
+(psi, phi, lp) = nanoscat_make_filters(N, J, 'hanning')
 
 if(plot_flag):
     nanoscat_display_filters(psi, phi, lp)
