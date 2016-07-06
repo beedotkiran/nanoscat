@@ -11,15 +11,16 @@ for m = 1:M+1
     hindex = 1;
     for s = 1:numel(U{m})
         sigf = fft (U{m}{s});
-        %res here always calculates to 1
-        %scatnet/scatnetligt does : ds = round(log2(2*pi/phi_bw)) - j0 - options.oversampling;
+        %fixed problem with res : this changes when c is subsampled 
         res = (log2N - (log2 (length(sigf)))) + 1;
         %Convolution with \psi_\lambda wavelet filters
         if m<=M
             for j = s : numel(psi{res})
+                disp([res, length(sigf), length(psi{res}{j})])
                 ds = 2^(j-s);
                 c = abs(ifft(sigf .* psi{res}{j}));
-                U{m+1}{hindex} = c;
+                %subsampling now
+                U{m+1}{hindex} = c(1:ds:end);
                 hindex = hindex + 1;
             end
         end

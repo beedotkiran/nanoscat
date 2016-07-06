@@ -27,9 +27,9 @@ nanoscat_display_filters (psi, phi, lp);
 
 %% format and plot S coefficients
 scat = nanoscat_format (S, [1:M+1]); % creates a matrix with all coefficients
-
-figure
-imagesc (scat);
+size(scat)
+figure,
+imagesc(scat);
 title ('Scattering coefficients (all orders)');
 
 % eof

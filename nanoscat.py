@@ -3,27 +3,29 @@ import scipy.io.wavfile
 import matplotlib.pyplot as plt
 #import numpy.fft as fft_module
 import scipy.fftpack as fft_module
+#
+#def interpft(x, n):
+#    """
+#    Fourier interpolation : pythonified from interpft.m
+#    """
+#    nr = len(x)
+#    if n > nr:
+#        y = fft_module.fft(x) / nr
+#        k = np.floor(nr / 2)
+#        z = n * fft_module.ifft(np.hstack(y[0:k], np.zeros(shape=(n - nr)), y[k + 1:nr]))
+#    elif n < nr:
+#        print('interpft: Poor results possible: n should be bigger than x')
+#        ## XXX FIXME XXX the following doesn't work so well
+#        y = fft_module.fft(x) / nr
+#        k = np.ceil(n / 2)
+#        z = n * fft_module.ifft(np.hstack(y[0:k], y[nr - k + 2:nr]))
+#    else:
+#        z = x
+#    return z
 
-def interpft(x, n):
-    """
-    Fourier interpolation : pythonified from interpft.m
-    """
-    [nr, nc] = x.shape
-    if n > nr:
-        y = fft_module.fft(x) / nr
-        k = np.floor(nr / 2)
-        z = n * fft_module.ifft(np.hstack(y[0:k, :], np.zeros(shape=(n - nr, nc)), y[k + 1:nr]))
-    elif n < nr:
-        print('interpft: Poor results possible: n should be bigger than x')
-        ## XXX FIXME XXX the following doesn't work so well
-        y = fft_module.fft(x) / nr
-        k = np.ceil(n / 2)
-        z = n * fft_module.ifft(np.hstack(y[0:k, :], y[nr - k + 2:nr]))
-    else:
-        z = x
-    return z
-
-
+def interpft(x,n):
+    return np.fft.irfft(np.fft.rfft(x), n)
+    
 def nanoscat_load(filename):
     """
     Loading input audio sample
@@ -55,7 +57,7 @@ def nanoscat_make_filters(N, J, shape='gaussian'):
         psi[res + 1] = {}
 
         for j in range(0, J):
-            print('Why add this 0.8 in the sz size variable ? Further on this is not dyadic ratio')
+#            print('Why add this 0.8 in the sz size variable ? Further on this is not dyadic ratio')
             sz = int(np.floor(0.8 * N0 / 2 ** j))
             if sz <= N / 2 ** J:
                 break
@@ -124,7 +126,7 @@ def nanoscat_compute(sig, psi, phi, M):
     phi : low pass filters dictionary
     M : scattering order (>= 1)
     """
-
+    
     U = {}
     U[1] = {}
     # initialize the signal at U_0 which will be recursively updated with x * \psi_\lambda
@@ -139,7 +141,7 @@ def nanoscat_compute(sig, psi, phi, M):
         #create new dictionary : m+1 th order U signals and mth order S signals
         S[m] = {}
         U[m + 1] = {}
-        
+        print('Order = ' + repr(m))
         for s in range(1, len(U[m]) + 1):
             
             sigf = fft_module.fft(U[m][s])
@@ -149,10 +151,12 @@ def nanoscat_compute(sig, psi, phi, M):
             if m <= M:
                 
                 for j in range(s, len(psi[res]) + 1):
+                    print('res = ' + repr(res) + ', siglen = ' + repr(len(sig)) + ', psi_j_len = ' + repr(len(psi[1][1])))
                     # subsample rate is different between the resolution and the bandpass critical frequency support j
                     ds = 2 ** (j - s)
                     c = np.abs(fft_module.ifft(np.multiply(sigf, psi[res][j])))
-                    U[m + 1][lambda_idx] = c
+                    U[m + 1][lambda_idx] = c[0::ds]
+                    print(U[m + 1][lambda_idx].shape)
                     lambda_idx = lambda_idx + 1
                     
             #why is subsampling fixed to this value here ?
@@ -176,15 +180,14 @@ def nanoscat_format(S, M):
         c = np.zeros(shape=(nlambdas, maxlen))
 
         for j in S[m]:
-            #removed interpft
-            # itp = interpft(S[m][j], maxlen)
-            c[j-1, :] = S[m][j] 
+            itp = interpft(S[m][j], maxlen)
+            c[j-1, :] = itp #S[m][j] 
         t[m] = c
     
     for m in t:
         coeff = np.vstack((coeff, t[m]))
     
-    return coeff
+    return coeff[1::,:]
 
 
 ## nanoscat demo starts here
@@ -209,7 +212,7 @@ if(plot_flag):
 assert (J < np.log2(N))
 
 #compute filters
-(psi, phi, lp) = nanoscat_make_filters(N, J, 'hanning')
+(psi, phi, lp) = nanoscat_make_filters(N, J, 'gaussian')
 
 if(plot_flag):
     nanoscat_display_filters(psi, phi, lp)
