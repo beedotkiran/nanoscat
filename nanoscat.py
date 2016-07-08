@@ -3,28 +3,13 @@ import scipy.io.wavfile
 import matplotlib.pyplot as plt
 #import numpy.fft as fft_module
 import scipy.fftpack as fft_module
-#
-#def interpft(x, n):
-#    """
-#    Fourier interpolation : pythonified from interpft.m
-#    """
-#    nr = len(x)
-#    if n > nr:
-#        y = fft_module.fft(x) / nr
-#        k = np.floor(nr / 2)
-#        z = n * fft_module.ifft(np.hstack(y[0:k], np.zeros(shape=(n - nr)), y[k + 1:nr]))
-#    elif n < nr:
-#        print('interpft: Poor results possible: n should be bigger than x')
-#        ## XXX FIXME XXX the following doesn't work so well
-#        y = fft_module.fft(x) / nr
-#        k = np.ceil(n / 2)
-#        z = n * fft_module.ifft(np.hstack(y[0:k], y[nr - k + 2:nr]))
-#    else:
-#        z = x
-#    return z
-
+from scipy import signal
 def interpft(x,n):
-    return np.fft.irfft(np.fft.rfft(x), n)
+    """
+    Fourier interpolation of signal x to n points.
+    """
+    return signal.resample(x,n)
+#    return np.fft.irfft(np.fft.rfft(x), n)
     
 def nanoscat_load(filename):
     """
@@ -33,9 +18,8 @@ def nanoscat_load(filename):
     (sr, y) = scipy.io.wavfile.read(filename);
     leny = len(y);
     N = int(np.power(2, np.floor(np.log2(leny)) + 1));
-    sig = np.zeros(shape=(N, 1));
-    sig[0:leny, 0] = y;
-    sig = sig[:,0]
+    sig = np.zeros(shape=(N));
+    sig[0:leny] = y;
     return (sig, N, leny, sr)
 
 
@@ -45,8 +29,8 @@ def nanoscat_make_filters(N, J, shape='gaussian'):
     and resolutions res < log2(N)
     """
     nResolutions = int(1 + np.floor(np.log2(N)))
-    psi = {}  # cell(1, nResolutions)
-    phi = {}  # cell(1, nResolutions)
+    psi = {}  
+    phi = {}  
 
     for res in range(0, nResolutions):
         N0 = round(N / 2 ** res)
@@ -74,7 +58,7 @@ def nanoscat_make_filters(N, J, shape='gaussian'):
 
             if (res + j == J - 1):
                 if shape == 'hanning':
-                    print('Fix me the length issue here')
+                    print('FIXME : length issue here')
                     f = np.zeros(shape=(N0))
                     half = np.floor(sz / 2)
                     f[-1 - half + 1:-1] = v[0:half] * .5
@@ -82,10 +66,7 @@ def nanoscat_make_filters(N, J, shape='gaussian'):
                     phi[res] = f
                 else:  # 'gaussian' This is for Q = 1
                     bw = 0.4 * 2 ** (-1 + J)
-                    # temp2 = -np.square(np.arange(0, N0,dtype=float)) * 10 * np.log(2) / bw**2
                     phi[res + 1] = np.exp(-np.square(np.arange(0, N0,dtype=float)) * 10 * np.log(2) / bw**2 ).transpose()
-                    # print(N0,max(phi[res+1]),min(phi[res+1]))
-                    # print(N0,max(temp2),min(temp2))
 
     # Calculate little-wood Paley function
     lp = np.zeros(shape=psi[1][1].shape)
@@ -135,33 +116,34 @@ def nanoscat_compute(sig, psi, phi, M):
     # maximal length
     log2N = np.log2(len(psi[1][1]))
     # number of lambdas
-    J = len(psi)
+    J = 1 + int(np.log2(len(sig)))
+    
     for m in range(1, M + 2):
         lambda_idx = 1
         #create new dictionary : m+1 th order U signals and mth order S signals
         S[m] = {}
         U[m + 1] = {}
-        print('Order = ' + repr(m))
+        
         for s in range(1, len(U[m]) + 1):
             
             sigf = fft_module.fft(U[m][s])
             #res always calculates to 1 here
             #scatnet/scatnetligt does : ds = round(log2(2*pi/phi_bw)) - j0 - options.oversampling;
             res = int((log2N - (np.log2(len(sigf)))) + 1)
+            
             if m <= M:
                 
                 for j in range(s, len(psi[res]) + 1):
-                    print('res = ' + repr(res) + ', siglen = ' + repr(len(sig)) + ', psi_j_len = ' + repr(len(psi[1][1])))
                     # subsample rate is different between the resolution and the bandpass critical frequency support j
                     ds = 2 ** (j - s)
                     c = np.abs(fft_module.ifft(np.multiply(sigf, psi[res][j])))
                     U[m + 1][lambda_idx] = c[0::ds]
-                    print(U[m + 1][lambda_idx].shape)
                     lambda_idx = lambda_idx + 1
                     
             #why is subsampling fixed to this value here ?
             ds = (J - res)**2
             c = np.abs(fft_module.ifft(np.multiply(sigf, phi[res])))
+            print('Order = ' + repr(m) + ' ,res = ' + repr(res) + ', siglen = ' + repr(sigf.shape) + ', ds_phi = ' + repr(ds)) #', psi_j_len = ' + repr(len(psi[1][1]))            
             if ds > 1:
                 c = c[0::ds]
             S[m][s] = c
@@ -193,7 +175,7 @@ def nanoscat_format(S, M):
 ## nanoscat demo starts here
 ## Q = 1 (dyadic wavelets)
 M = 2  # orders
-J = 11  # maximal scale
+J = 12  # maximal scale
 plot_flag = 1
 
 ## load and zero pad audio
