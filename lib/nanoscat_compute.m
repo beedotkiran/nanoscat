@@ -14,9 +14,10 @@ for m = 1:M+1
         %fixed problem with res : this changes when c is subsampled 
         res = (log2N - (log2 (length(sigf)))) + 1;
         %Convolution with \psi_\lambda wavelet filters
+        
         if m<=M
             for j = s : numel(psi{res})
-                disp([res, length(sigf), length(psi{res}{j})])
+                disp(res)
                 ds = 2^(j-s);
                 c = abs(ifft(sigf .* psi{res}{j}));
                 %subsampling now
@@ -26,6 +27,7 @@ for m = 1:M+1
         end
         %Convolution with \phi_J (low pass) at various resolutions res
         ds = (J - res)^2;
+%         disp(['order = ' num2str(m) ' res = ' num2str(res) ' siglen = ' num2str(length(sigf)) ' ds_phi = ' num2str(ds)])
         c = abs (ifft(sigf .* phi{res}));
         if ds > 1
             c = c(1:ds:end);

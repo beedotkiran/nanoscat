@@ -11,8 +11,8 @@ for o = 1:length (orders);
     c = zeros(nlambdas, maxlen);
     
     for i = 1:nlambdas
-        itp = interpft(Out{i}, maxlen);
-        c(i, :) = itp;
+%         itp = interpft(Out{i}, maxlen);
+        c(i, 1:length(Out{i})) = Out{i}; %itp;
     end
     t{m} = c;
 end

@@ -116,7 +116,7 @@ def nanoscat_compute(sig, psi, phi, M):
     # maximal length
     log2N = np.log2(len(psi[1][1]))
     # number of lambdas
-    J = 1 + int(np.log2(len(sig)))
+    nResolutions = 1 + int(np.log2(len(sig)))
     
     for m in range(1, M + 2):
         lambda_idx = 1
@@ -134,16 +134,17 @@ def nanoscat_compute(sig, psi, phi, M):
             if m <= M:
                 
                 for j in range(s, len(psi[res]) + 1):
+                    print(res, len(psi[res]))
                     # subsample rate is different between the resolution and the bandpass critical frequency support j
                     ds = 2 ** (j - s)
                     c = np.abs(fft_module.ifft(np.multiply(sigf, psi[res][j])))
                     U[m + 1][lambda_idx] = c[0::ds]
                     lambda_idx = lambda_idx + 1
                     
-            #why is subsampling fixed to this value here ?
-            ds = (J - res)**2
+            #why is subsampling fixed to this value here ? and not low_pass_bw/sampling_fs
+            ds = (nResolutions - res)**2
             c = np.abs(fft_module.ifft(np.multiply(sigf, phi[res])))
-            print('Order = ' + repr(m) + ' ,res = ' + repr(res) + ', siglen = ' + repr(sigf.shape) + ', ds_phi = ' + repr(ds)) #', psi_j_len = ' + repr(len(psi[1][1]))            
+#            print('Order = ' + repr(m) + ' ,res = 2' + repr(res) + ', siglen = ' + repr(sigf.shape) + ', ds_phi = ' + repr(ds)) #', psi_j_len = ' + repr(len(psi[1][1]))            
             if ds > 1:
                 c = c[0::ds]
             S[m][s] = c
